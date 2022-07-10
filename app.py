@@ -14,9 +14,9 @@ recognizer = ImageRecognition(model)
 extensions = ['.jpg', '.png', '.bmp', '.gif', '.tif',
               '.jp2', '.pcx', '.ppm', '.tga']
 
-path_dict = {'Clear 1': './source/data/examples/Normal/1.png',
-             'Clear 2': './source/data/examples/Normal/2.png',
-             'Clear 3': './source/data/examples/Normal/3.png',
+path_dict = {'Normal 1': './source/data/examples/Normal/1.png',
+             'Normal 2': './source/data/examples/Normal/2.png',
+             'Normal 3': './source/data/examples/Normal/3.png',
              'Tuberculosis 1': './source/data/examples/Tuberculosis/1.png',
              'Tuberculosis 2': './source/data/examples/Tuberculosis/2.jpg',
              'Tuberculosis 3': './source/data/examples/Tuberculosis/3.jpg'}
@@ -37,7 +37,7 @@ imageLocation = st.empty()
 
 choosed_way = st.sidebar.selectbox(
     'Upload image or choose a preset',
-    ('Not choosen', 'Upload image', 'Choose a preset'))
+    (' ', 'Upload image', 'Choose a preset'))
 
 if choosed_way == 'Upload image':
     uploaded_file = st.sidebar.file_uploader("Upload an image")
@@ -56,7 +56,7 @@ if choosed_way == 'Upload image':
 elif choosed_way == 'Choose a preset':
     selected_image = st.sidebar.selectbox(
         'Сhoose a preset image',
-        ('Not choosen', 'Clear 1', 'Clear 2', 'Clear 3',
+        ('Not choosen', 'Normal 1', 'Normal 2', 'Normal 3',
          'Tuberculosis 1', 'Tuberculosis 2', 'Tuberculosis 3'))
     if selected_image != 'Not choosen':
         image_path = path_dict[selected_image]
