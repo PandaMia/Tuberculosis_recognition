@@ -83,9 +83,9 @@ class Evaluator(object):
         test_accuracy = accuracy_score(all_labels, all_preds)
         test_f1 = f1_score(all_labels, all_preds, zero_division=1)
 
-        print(f'Ошибка: {test_loss:.4f}')
-        print(f'Доля правильных ответов: {test_accuracy:.4f}'),
-        print(f'Метрика F1: {test_f1:.4f}')
+        print(f'Loss: {test_loss:.4f}')
+        print(f'Accuracy: {test_accuracy:.4f}'),
+        print(f'F1-score: {test_f1:.4f}')
 
         cm = confusion_matrix(all_labels, all_preds)
         plot_confusion_matrix(cm, figsize=(5, 5), colorbar=True, cmap='Spectral',
