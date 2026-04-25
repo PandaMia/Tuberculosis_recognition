@@ -2,6 +2,7 @@ import json
 import torch
 from torchvision import transforms
 import io
+from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 import numpy as np
 
@@ -18,7 +19,7 @@ class ImageRecognition(object):
         self.width = 500
         self.model = model
         self.model.eval()
-        self.draw_config = {'font': ImageFont.truetype("arial.ttf", 50),
+        self.draw_config = {'font': self.load_font(50),
                             'rect_shape': [(0, 30), (500, 160)]}
 
     def __call__(self, bytes_data):
@@ -39,6 +40,24 @@ class ImageRecognition(object):
         image = Image.open(io.BytesIO(bytes_data))
         image = self.image_transforms(image).unsqueeze(0)
         return image
+
+    def load_font(self, size):
+        font_candidates = (
+            'Arial.ttf',
+            'arial.ttf',
+            '/System/Library/Fonts/Supplemental/Arial.ttf',
+            '/System/Library/Fonts/Supplemental/Arial Bold.ttf',
+            'C:/Windows/Fonts/arial.ttf',
+            '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
+        )
+
+        for font_path in font_candidates:
+            try:
+                return ImageFont.truetype(str(Path(font_path)), size)
+            except OSError:
+                continue
+
+        return ImageFont.load_default(size=size)
 
     def recognize(self, input):
         with torch.no_grad():

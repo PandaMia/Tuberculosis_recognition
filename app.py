@@ -11,7 +11,7 @@ model = CNN()
 model.load_state_dict(torch.load(weights, map_location=device))
 recognizer = ImageRecognition(model)
 
-extensions = ['.jpg', '.png', '.bmp', '.gif', '.tif',
+extensions = ['.jpg', '.jpeg', '.png', '.bmp', '.gif', '.tif',
               '.jp2', '.pcx', '.ppm', '.tga']
 
 path_dict = {'Normal 1': './source/data/examples/Normal/1.png',
@@ -43,6 +43,7 @@ if choosed_way == 'Upload image':
     uploaded_file = st.sidebar.file_uploader("Upload an image")
     if uploaded_file is not None:
         _, ext = os.path.splitext(uploaded_file.name)
+        ext = ext.lower()
         if ext in extensions:
             bytes_data = uploaded_file.getvalue()
             imageLocation.image(bytes_data, width=500)
@@ -51,7 +52,7 @@ if choosed_way == 'Upload image':
                 image = recognizer(bytes_data)
                 imageLocation.image(image, width=500)
         else:
-            st.error('Wrong extension! Please upload an image (jpg, png, bmp, gif, tif, jp2, pcx, ppm, tga)')
+            st.error('Wrong extension! Please upload an image (jpg, jpeg, png, bmp, gif, tif, jp2, pcx, ppm, tga)')
 
 elif choosed_way == 'Choose a preset':
     selected_image = st.sidebar.selectbox(
