@@ -1,3 +1,4 @@
+# Copy this site block into /etc/caddy/Caddyfile on the server.
 tuberculosis-recognition.pandamia.org {
     encode zstd gzip
     reverse_proxy 127.0.0.1:18501

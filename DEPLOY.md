@@ -1,12 +1,26 @@
 # Deploy
 
-This project is prepared for deployment in `/srv/tuberculosis-recognition` and exposure through `tuberculosis-recognition.pandamia.org`.
+This project is prepared for deployment in `/srv/tuberculosis-recognition` and exposure through `https://tuberculosis-recognition.pandamia.org`.
+
+Production setup:
+- the app runs in Docker Compose
+- Streamlit is published only on `127.0.0.1:18501`
+- host-level Caddy listens on `80/443` and proxies the subdomain to `127.0.0.1:18501`
 
 ## 1. Clone the repository on the server
 
 ```bash
 cd /srv
 git clone <YOUR_REPOSITORY_URL> tuberculosis-recognition
+cd /srv/tuberculosis-recognition
+```
+
+If `/srv` is not writable by your user:
+
+```bash
+sudo mkdir -p /srv/tuberculosis-recognition
+sudo chown -R $USER:$USER /srv/tuberculosis-recognition
+git clone <YOUR_REPOSITORY_URL> /srv/tuberculosis-recognition
 cd /srv/tuberculosis-recognition
 ```
 
@@ -18,7 +32,13 @@ The model weights are not stored in the repository. On the server, the file must
 /srv/tuberculosis-recognition/source/model/model_weights.pth
 ```
 
-Example upload from your local machine:
+Create the directory if needed:
+
+```bash
+mkdir -p /srv/tuberculosis-recognition/source/model
+```
+
+Upload from your local machine:
 
 ```bash
 scp ./model_weights.pth <user>@<server>:/srv/tuberculosis-recognition/source/model/model_weights.pth
@@ -30,18 +50,30 @@ If the file already exists somewhere else on the server:
 cp /path/to/model_weights.pth /srv/tuberculosis-recognition/source/model/model_weights.pth
 ```
 
-## 3. Start the container
+## 3. Start the application
 
 ```bash
 cd /srv/tuberculosis-recognition
 docker compose up -d --build
 ```
 
-The application will be available locally on the server at `127.0.0.1:18501`.
+Useful checks:
 
-## 4. Connect the project through Caddy
+```bash
+docker compose ps
+docker compose logs -f
+curl http://127.0.0.1:18501/_stcore/health
+```
 
-The repository includes a ready-to-use site block in `Caddyfile`:
+Expected health response:
+
+```text
+ok
+```
+
+## 4. Configure host-level Caddy
+
+Copy the site block from `Caddyfile` into `/etc/caddy/Caddyfile` on the server:
 
 ```caddyfile
 tuberculosis-recognition.pandamia.org {
@@ -50,34 +82,57 @@ tuberculosis-recognition.pandamia.org {
 }
 ```
 
-Add this block to your current Caddy configuration or include it using the import mechanism already used on your server.
+If you are migrating from a containerized Caddy setup, stop the old Caddy container before switching host-level Caddy onto ports `80/443`.
 
-After updating the Caddy configuration, reload or restart Caddy using the existing method already configured on the server.
+Validate and reload:
+
+```bash
+sudo caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+sudo systemctl reload caddy
+```
 
 ## 5. DNS
 
-The subdomain `tuberculosis-recognition.pandamia.org` must point to your server IP.
+The subdomain `tuberculosis-recognition.pandamia.org` must resolve to your server IP.
 
-If you already use a wildcard record such as `*.pandamia.org`, you do not need to add a separate DNS record.
+Quick check:
 
-## 6. Update the project
+```bash
+dig +short A tuberculosis-recognition.pandamia.org
+```
+
+## 6. Verify HTTPS
+
+```bash
+curl -I https://tuberculosis-recognition.pandamia.org
+```
+
+Expected result:
+
+```text
+HTTP/2 200
+```
+
+## 7. Update the project
 
 ```bash
 cd /srv/tuberculosis-recognition
 git pull
 docker compose up -d --build
+sudo systemctl reload caddy
 ```
 
-## 7. Useful commands
+## 8. Useful commands
 
 ```bash
 docker compose logs -f
 docker compose ps
 docker compose restart
+sudo journalctl -u caddy -n 100 --no-pager
 ```
 
 ## Notes
 
 - The model weights are mounted into the container and are not baked into the Docker image.
-- This setup does not interfere with other projects because the app is exposed only on `127.0.0.1:18501`.
-- If you want to use a different subdomain or local port, update both `Caddyfile` and `docker-compose.yml` accordingly.
+- The app is exposed only on `127.0.0.1:18501`, so it does not conflict with other projects on the server.
+- If you change the subdomain or local port, update both `Caddyfile` and `docker-compose.yml`.
