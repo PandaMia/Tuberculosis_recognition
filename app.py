@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 import streamlit as st
 import torch
 from cnn_model import CNN
@@ -6,10 +7,24 @@ from inference import ImageRecognition
 
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
-weights = 'source/model/model_weights.pth'
-model = CNN()
-model.load_state_dict(torch.load(weights, map_location=device))
-recognizer = ImageRecognition(model)
+weights = Path(os.getenv('MODEL_WEIGHTS_PATH', 'source/model/model_weights.pth'))
+
+
+@st.cache_resource
+def load_recognizer(weights_path):
+    model = CNN()
+    model.load_state_dict(torch.load(weights_path, map_location=device))
+    return ImageRecognition(model)
+
+
+if not weights.exists():
+    st.error(
+        f'Model weights not found: {weights}. '
+        'Upload model_weights.pth to source/model/ or set MODEL_WEIGHTS_PATH.'
+    )
+    st.stop()
+
+recognizer = load_recognizer(str(weights))
 
 extensions = ['.jpg', '.jpeg', '.png', '.bmp', '.gif', '.tif',
               '.jp2', '.pcx', '.ppm', '.tga']
