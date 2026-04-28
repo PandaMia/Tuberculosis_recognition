@@ -15,15 +15,15 @@ To train model you need:
   * ```cd Tuberculosis_recognition```
   * ```pip install -r requirements.txt```
 * Run data preparation:  
-  * ```python data_preparation.py C:\Path\To\Archive\TB_database.zip```  
+  * ```python -m scripts.data_preparation C:\Path\To\Archive\TB_database.zip```  
 * Train model:
-  * ```python train.py --epochs 20 --lr 0.0003 --bs 32```
+  * ```python -m scripts.train --epochs 20 --lr 0.0003 --bs 32```
   
 The weights of the trained model will be saved in the file ```./source/model/model_weights.pth```
   
 To evaluate model on test data you need:
 * Run evaluation script:
-  * ```python evaluation.py --bs 32```
+  * ```python -m scripts.evaluation --bs 32```
 
 ## Inference
 

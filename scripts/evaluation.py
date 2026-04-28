@@ -1,14 +1,17 @@
-import json
 import argparse
-from tqdm import tqdm
+import json
+
+import matplotlib.pyplot as plt
+from mlxtend.plotting import plot_confusion_matrix
+from sklearn.metrics import accuracy_score, f1_score, confusion_matrix
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
-from sklearn.metrics import accuracy_score, f1_score, confusion_matrix
-from mlxtend.plotting import plot_confusion_matrix
-import matplotlib.pyplot as plt
-from cnn_model import CNN
+from tqdm import tqdm
+
+from tuberculosis_recognition.cnn_model import CNN
+from tuberculosis_recognition.paths import DATA_PARAMS_PATH, MODEL_WEIGHTS_PATH
 
 
 class Evaluator(object):
@@ -16,8 +19,8 @@ class Evaluator(object):
     def __init__(self, device, batch_size):
         self.device = device
         self.batch_size = batch_size
-        self.params_file = './source/data/data_params.json'
-        self.weights_path = './source/model/model_weights.pth'
+        self.params_file = DATA_PARAMS_PATH
+        self.weights_path = MODEL_WEIGHTS_PATH
         self.test_dir = None
         self.img_shape = None
         self.mean = None
@@ -29,12 +32,12 @@ class Evaluator(object):
         self.create_loader()
 
     def load_params(self):
-        with open(self.params_file, 'r') as f:
+        with open(self.params_file, "r") as f:
             params = json.loads(f.read())
-        self.test_dir = params['test']
-        self.img_shape = params['img_shape']
-        self.mean = torch.tensor(params['mean'])
-        self.std = torch.tensor(params['std'])
+        self.test_dir = params["test"]
+        self.img_shape = params["img_shape"]
+        self.mean = torch.tensor(params["mean"])
+        self.std = torch.tensor(params["std"])
 
     def create_model(self):
         self.model = CNN().to(self.device)
@@ -83,23 +86,23 @@ class Evaluator(object):
         test_accuracy = accuracy_score(all_labels, all_preds)
         test_f1 = f1_score(all_labels, all_preds, zero_division=1)
 
-        print(f'Loss: {test_loss:.4f}')
-        print(f'Accuracy: {test_accuracy:.4f}'),
-        print(f'F1-score: {test_f1:.4f}')
+        print(f"Loss: {test_loss:.4f}")
+        print(f"Accuracy: {test_accuracy:.4f}"),
+        print(f"F1-score: {test_f1:.4f}")
 
         cm = confusion_matrix(all_labels, all_preds)
-        plot_confusion_matrix(cm, figsize=(5, 5), colorbar=True, cmap='Spectral',
-                              class_names=['Normal', 'Tuberculosis'])
+        plot_confusion_matrix(cm, figsize=(5, 5), colorbar=True, cmap="Spectral",
+                              class_names=["Normal", "Tuberculosis"])
         plt.show()
 
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Model training')
-    parser.add_argument('--bs', type=int, default=32, help='Batch size (default: 32)')
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Model training")
+    parser.add_argument("--bs", type=int, default=32, help="Batch size (default: 32)")
 
     args = parser.parse_args()
     batch_size = args.bs
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    device = "cuda" if torch.cuda.is_available() else "cpu"
 
     e = Evaluator(device, batch_size)
     e.evaluate()

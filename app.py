@@ -1,13 +1,16 @@
 import os
 from pathlib import Path
+
 import streamlit as st
 import torch
-from cnn_model import CNN
-from inference import ImageRecognition
+
+from tuberculosis_recognition.cnn_model import CNN
+from tuberculosis_recognition.inference import ImageRecognition
+from tuberculosis_recognition.paths import EXAMPLES_DIR, MODEL_WEIGHTS_PATH
 
 
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
-weights = Path(os.getenv('MODEL_WEIGHTS_PATH', 'source/model/model_weights.pth'))
+device = "cuda" if torch.cuda.is_available() else "cpu"
+weights = Path(os.getenv("MODEL_WEIGHTS_PATH", str(MODEL_WEIGHTS_PATH)))
 
 
 @st.cache_resource
@@ -19,42 +22,55 @@ def load_recognizer(weights_path):
 
 if not weights.exists():
     st.error(
-        f'Model weights not found: {weights}. '
-        'Upload model_weights.pth to source/model/ or set MODEL_WEIGHTS_PATH.'
+        f"Model weights not found: {weights}. "
+        "Upload model_weights.pth to source/model/ or set MODEL_WEIGHTS_PATH."
     )
     st.stop()
 
 recognizer = load_recognizer(str(weights))
 
-extensions = ['.jpg', '.jpeg', '.png', '.bmp', '.gif', '.tif',
-              '.jp2', '.pcx', '.ppm', '.tga']
+extensions = [
+    ".jpg",
+    ".jpeg",
+    ".png",
+    ".bmp",
+    ".gif",
+    ".tif",
+    ".jp2",
+    ".pcx",
+    ".ppm",
+    ".tga"
+]
 
-path_dict = {'Normal 1': './source/data/examples/Normal/1.png',
-             'Normal 2': './source/data/examples/Normal/2.png',
-             'Normal 3': './source/data/examples/Normal/3.png',
-             'Tuberculosis 1': './source/data/examples/Tuberculosis/1.png',
-             'Tuberculosis 2': './source/data/examples/Tuberculosis/2.jpg',
-             'Tuberculosis 3': './source/data/examples/Tuberculosis/3.jpg'}
+path_dict = {
+    "Normal 1": EXAMPLES_DIR / "Normal" / "1.png",
+    "Normal 2": EXAMPLES_DIR / "Normal" / "2.png",
+    "Normal 3": EXAMPLES_DIR / "Normal" / "3.png",
+    "Tuberculosis 1": EXAMPLES_DIR / "Tuberculosis" / "1.png",
+    "Tuberculosis 2": EXAMPLES_DIR / "Tuberculosis" / "2.jpg",
+    "Tuberculosis 3": EXAMPLES_DIR / "Tuberculosis" / "3.jpg"
+}
 
 m = st.markdown("""
 <style>
 div.stButton > button:first-child {
     height: 4em;
-    width: 19em; 
+    width: 100%;
 }
 </style>""", unsafe_allow_html=True)
 
-st.title('Tuberculosis recognition')
-st.text('Choose an image and run recognize')
+st.title("Tuberculosis recognition")
+st.text("Choose an image and run recognize")
 
 
 imageLocation = st.empty()
 
 choosed_way = st.sidebar.selectbox(
-    'Upload image or choose a preset',
-    (' ', 'Upload image', 'Choose a preset'))
+    "Upload image or choose a preset",
+    ("Not choosen", "Upload image", "Choose a preset")
+)
 
-if choosed_way == 'Upload image':
+if choosed_way == "Upload image":
     uploaded_file = st.sidebar.file_uploader("Upload an image")
     if uploaded_file is not None:
         _, ext = os.path.splitext(uploaded_file.name)
@@ -67,17 +83,17 @@ if choosed_way == 'Upload image':
                 image = recognizer(bytes_data)
                 imageLocation.image(image, width=500)
         else:
-            st.error('Wrong extension! Please upload an image (jpg, jpeg, png, bmp, gif, tif, jp2, pcx, ppm, tga)')
+            st.error("Wrong extension! Please upload an image (jpg, jpeg, png, bmp, gif, tif, jp2, pcx, ppm, tga)")
 
-elif choosed_way == 'Choose a preset':
+elif choosed_way == "Choose a preset":
     selected_image = st.sidebar.selectbox(
-        'Сhoose a preset image',
-        ('Not choosen', 'Normal 1', 'Normal 2', 'Normal 3',
-         'Tuberculosis 1', 'Tuberculosis 2', 'Tuberculosis 3'))
-    if selected_image != 'Not choosen':
+        "Choose a preset image",
+        ("Not choosen", "Normal 1", "Normal 2", "Normal 3", "Tuberculosis 1", "Tuberculosis 2", "Tuberculosis 3")
+    )
+    if selected_image != "Not choosen":
         image_path = path_dict[selected_image]
-        file = open(image_path, "rb")
-        bytes_data = file.read()
+        with open(image_path, "rb") as file:
+            bytes_data = file.read()
         imageLocation.image(bytes_data, width=500)
         recognize = st.sidebar.button("Recognize!")
         if recognize:

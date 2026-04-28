@@ -1,13 +1,16 @@
-import json
 import argparse
+import json
 from copy import deepcopy
-from tqdm import tqdm
+
+from sklearn.metrics import accuracy_score, f1_score
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
-from sklearn.metrics import accuracy_score, f1_score
-from cnn_model import CNN
+from tqdm import tqdm
+
+from tuberculosis_recognition.cnn_model import CNN
+from tuberculosis_recognition.paths import DATA_PARAMS_PATH, MODEL_WEIGHTS_PATH
 
 
 class Training(object):
@@ -17,8 +20,8 @@ class Training(object):
         self.epochs = epochs
         self.lr = lr
         self.batch_size = batch_size
-        self.params_file = './source/data/data_params.json'
-        self.save_path = './source/model/model_weights.pth'
+        self.params_file = DATA_PARAMS_PATH
+        self.save_path = MODEL_WEIGHTS_PATH
         self.train_dir, self.val_dir = None, None
         self.img_shape = None
         self.mean = None
@@ -26,45 +29,62 @@ class Training(object):
         self.train_loader, self.val_loader = None, None
         self.model, self.criterion, self.optimizer, self.scheduler = None, None, None, None
         self.best_state = None
-        self.history = {'train_loss': [], 'train_accuracy': [], 'train_f1': [],
-                        'val_loss': [], 'val_accuracy': [], 'val_f1': []}
+        self.history = {
+            "train_loss": [],
+            "train_accuracy": [],
+            "train_f1": [],
+            "val_loss": [],
+            "val_accuracy": [],
+            "val_f1": []
+        }
         self.load_params()
         self.create_model()
         self.create_loaders()
 
     def load_params(self):
-        with open(self.params_file, 'r') as f:
+        with open(self.params_file, "r") as f:
             params = json.loads(f.read())
-        self.train_dir = params['train']
-        self.val_dir = params['val']
-        self.img_shape = params['img_shape']
-        self.mean = params['mean']
-        self.std = params['std']
+        self.train_dir = params["train"]
+        self.val_dir = params["val"]
+        self.img_shape = params["img_shape"]
+        self.mean = params["mean"]
+        self.std = params["std"]
 
     def create_model(self):
         self.model = CNN().to(self.device)
         pos_weight = torch.tensor([5]).to(self.device)
         self.criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.lr)
-        self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer=self.optimizer,
-                                                                    mode='min',
-                                                                    patience=2,
-                                                                    factor=0.4,
-                                                                    verbose=True)
+        self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+            optimizer=self.optimizer,
+            mode="min",
+            patience=2,
+            factor=0.4,
+            verbose=True
+        )
 
     def create_loaders(self):
-        train_transforms = transforms.Compose([transforms.Resize(self.img_shape),
-                                               transforms.Grayscale(num_output_channels=1),
-                                               transforms.ColorJitter(brightness=0.3, contrast=0.3),
-                                               transforms.RandomAffine(degrees=0,
-                                                                       translate=(0.1, 0.1),
-                                                                       scale=(0.9, 1.1)),
-                                               transforms.ToTensor(),
-                                               transforms.Normalize(mean=self.mean, std=self.std)])
-        val_transforms = transforms.Compose([transforms.Resize(self.img_shape),
-                                             transforms.Grayscale(num_output_channels=1),
-                                             transforms.ToTensor(),
-                                             transforms.Normalize(mean=self.mean, std=self.std)])
+        train_transforms = transforms.Compose(
+            [
+                transforms.Resize(self.img_shape),
+                transforms.Grayscale(num_output_channels=1),
+                transforms.ColorJitter(brightness=0.3, contrast=0.3),
+                transforms.RandomAffine(
+                    degrees=0,
+                    translate=(0.1, 0.1),
+                    scale=(0.9, 1.1)
+                ),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=self.mean, std=self.std)]
+        )
+        val_transforms = transforms.Compose(
+            [
+                transforms.Resize(self.img_shape),
+                transforms.Grayscale(num_output_channels=1),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=self.mean, std=self.std)
+            ]
+        )
 
         train_dataset = datasets.ImageFolder(self.train_dir, train_transforms)
         val_dataset = datasets.ImageFolder(self.val_dir, val_transforms)
@@ -73,22 +93,22 @@ class Training(object):
         self.val_loader = DataLoader(val_dataset, batch_size=self.batch_size, shuffle=False)
 
     def train(self):
-        min_loss = float('inf')
+        min_loss = float("inf")
 
         for epoch in range(self.epochs):
-            print('Epoch %02d' % (epoch+1))
+            print("Epoch %02d" % (epoch+1))
             train_loss, train_accuracy, train_f1 = self.fit_epoch()
             val_loss, val_accuracy, val_f1 = self.evaluate()
             if self.scheduler is not None:
                 self.scheduler.step(val_loss)
-            self.history['train_loss'].append(train_loss)
-            self.history['train_accuracy'].append(train_accuracy)
-            self.history['train_f1'].append(train_f1)
-            self.history['val_loss'].append(val_loss)
-            self.history['val_accuracy'].append(val_accuracy)
-            self.history['val_f1'].append(val_f1)
+            self.history["train_loss"].append(train_loss)
+            self.history["train_accuracy"].append(train_accuracy)
+            self.history["train_f1"].append(train_f1)
+            self.history["val_loss"].append(val_loss)
+            self.history["val_accuracy"].append(val_accuracy)
+            self.history["val_f1"].append(val_f1)
 
-            print('Train_loss: %.4f, Train_acc: %.4f, Train_f1: %.4f | Val_loss: %.4f, Val_acc: %.4f, Val_f1: %.4f' \
+            print("Train_loss: %.4f, Train_acc: %.4f, Train_f1: %.4f | Val_loss: %.4f, Val_acc: %.4f, Val_f1: %.4f" \
                   % (train_loss, train_accuracy, train_f1, val_loss, val_accuracy, val_f1))
 
             if val_loss < min_loss:
@@ -103,8 +123,8 @@ class Training(object):
         processed_size = 0
 
         for inputs, labels in tqdm(self.train_loader):
-            inputs = inputs.to(device)
-            labels = labels.to(device, dtype=torch.float32)
+            inputs = inputs.to(self.device)
+            labels = labels.to(self.device, dtype=torch.float32)
             self.optimizer.zero_grad()
 
             outputs = self.model(inputs)
@@ -133,8 +153,8 @@ class Training(object):
 
         with torch.no_grad():
             for inputs, labels in tqdm(self.val_loader):
-                inputs = inputs.to(device)
-                labels = labels.to(device, dtype=torch.float32)
+                inputs = inputs.to(self.device)
+                labels = labels.to(self.device, dtype=torch.float32)
 
                 outputs = self.model(inputs)
                 loss = self.criterion(outputs, labels.unsqueeze(1))
@@ -161,17 +181,17 @@ class Training(object):
         torch.save(self.model.state_dict(), self.save_path)
 
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Model training')
-    parser.add_argument('--epochs', type=int, default=20, help='Epochs of training (default: 20)')
-    parser.add_argument('--lr', type=float, default=0.0003, help='Learning rate (default: 0.0003)')
-    parser.add_argument('--bs', type=int, default=32, help='Batch size (default: 32)')
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Model training")
+    parser.add_argument("--epochs", type=int, default=20, help="Epochs of training (default: 20)")
+    parser.add_argument("--lr", type=float, default=0.0003, help="Learning rate (default: 0.0003)")
+    parser.add_argument("--bs", type=int, default=32, help="Batch size (default: 32)")
 
     args = parser.parse_args()
     epochs = args.epochs
     lr = args.lr
     batch_size = args.bs
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    device = "cuda" if torch.cuda.is_available() else "cpu"
 
     t = Training(device, epochs, lr, batch_size)
     t.train()
