@@ -57,7 +57,41 @@ div.stButton > button:first-child {
     height: 4em;
     width: 100%;
 }
+
+.top-links {
+    display: flex;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.top-links a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 8rem;
+    padding: 0.6rem 1rem;
+    border: 1px solid rgba(49, 51, 63, 0.2);
+    border-radius: 0.75rem;
+    color: inherit;
+    text-decoration: none;
+    font-weight: 600;
+    background: rgba(255, 255, 255, 0.7);
+}
+
+.top-links a:hover {
+    border-color: rgba(49, 51, 63, 0.45);
+}
 </style>""", unsafe_allow_html=True)
+
+st.markdown(
+    """
+    <div class="top-links">
+        <a href="https://github.com/PandaMia/Tuberculosis_recognition" target="_blank" rel="noreferrer">GitHub</a>
+        <a href="https://www.linkedin.com/in/aleksey-tep/" target="_blank" rel="noreferrer">LinkedIn</a>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 
 st.title("Tuberculosis recognition")
 st.text("Choose an image and run recognize")
