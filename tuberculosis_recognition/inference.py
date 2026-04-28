@@ -27,8 +27,11 @@ class ImageRecognition(object):
         self.model = model
         self.model.eval()
         self.draw_config = {
-            "font": self.load_font(50),
-            "rect_shape": [(0, 30), (500, 160)]
+            "font_size": 50,
+            "rect_top": 30,
+            "rect_side_padding": 25,
+            "rect_inner_padding": 12,
+            "line_gap": 8,
         }
 
     def __call__(self, bytes_data):
@@ -68,6 +71,17 @@ class ImageRecognition(object):
 
         return ImageFont.load_default(size=size)
 
+    def fit_font(self, draw, text, max_width, max_size, min_size=16):
+        for size in range(max_size, min_size - 1, -2):
+            font = self.load_font(size)
+            bbox = draw.textbbox((0, 0), text, font=font)
+            if bbox[2] - bbox[0] <= max_width:
+                return font, bbox
+
+        font = self.load_font(min_size)
+        bbox = draw.textbbox((0, 0), text, font=font)
+        return font, bbox
+
     def recognize(self, input):
         with torch.no_grad():
             output = self.model(input)
@@ -80,21 +94,58 @@ class ImageRecognition(object):
         image = Image.open(io.BytesIO(bytes_data)).convert("RGB")
         image = self.scale_image(image)
         if pred:
+            title = "Tuberculosis!"
+            confidence_text = f"Confidence: {prob}%"
+            banner_color = (208, 118, 119, 150)
             image[..., 0] += 80
-            image = np.clip(image, 0, 255).astype(np.uint8)
-            image = Image.fromarray(image)
-            im_draw = ImageDraw.Draw(image, "RGBA")
-            im_draw.rectangle(self.draw_config["rect_shape"], fill=(208, 118, 119, 150))
-            im_draw.text(xy=(100, 40), text="Tuberculosis!", fill=(255, 255, 255), font=self.draw_config["font"])
-            im_draw.text(xy=(25, 90), text=f"Confidence: {prob}%", fill=(255, 255, 255), font=self.draw_config["font"])
         else:
+            title = "Clear!"
+            confidence_text = f"Confidence: {100-prob}%"
+            banner_color = (120, 199, 119, 150)
             image[..., 1] += 80
-            image = np.clip(image, 0, 255).astype(np.uint8)
-            image = Image.fromarray(image)
-            im_draw = ImageDraw.Draw(image, "RGBA")
-            im_draw.rectangle(self.draw_config["rect_shape"], fill=(120, 199, 119, 150))
-            im_draw.text(xy=(180, 40), text="Clear!", fill=(255, 255, 255), font=self.draw_config["font"])
-            im_draw.text(xy=(25, 90), text=f"Confidence: {100-prob}%", fill=(255, 255, 255), font=self.draw_config["font"])
+
+        image = np.clip(image, 0, 255).astype(np.uint8)
+        image = Image.fromarray(image)
+        im_draw = ImageDraw.Draw(image, "RGBA")
+
+        side_padding = self.draw_config["rect_side_padding"]
+        inner_padding = self.draw_config["rect_inner_padding"]
+        max_text_width = image.width - 2 * (side_padding + inner_padding)
+
+        title_font, title_bbox = self.fit_font(
+            im_draw,
+            title,
+            max_text_width,
+            self.draw_config["font_size"],
+        )
+        confidence_font, confidence_bbox = self.fit_font(
+            im_draw,
+            confidence_text,
+            max_text_width,
+            self.draw_config["font_size"],
+        )
+
+        title_height = title_bbox[3] - title_bbox[1]
+        confidence_height = confidence_bbox[3] - confidence_bbox[1]
+        rect_top = self.draw_config["rect_top"]
+        rect_bottom = (
+            rect_top
+            + inner_padding * 2
+            + title_height
+            + self.draw_config["line_gap"]
+            + confidence_height
+        )
+        rect_shape = [(0, rect_top), (image.width, rect_bottom)]
+
+        title_width = title_bbox[2] - title_bbox[0]
+        title_x = (image.width - title_width) // 2
+        title_y = rect_top + inner_padding - title_bbox[1]
+        confidence_x = side_padding
+        confidence_y = title_y + title_height + self.draw_config["line_gap"]
+
+        im_draw.rectangle(rect_shape, fill=banner_color)
+        im_draw.text((title_x, title_y), title, fill=(255, 255, 255), font=title_font)
+        im_draw.text((confidence_x, confidence_y), confidence_text, fill=(255, 255, 255), font=confidence_font)
         return image
 
     def scale_image(self, image):
