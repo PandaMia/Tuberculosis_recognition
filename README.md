@@ -2,6 +2,8 @@
 
 The PyTorch neural network model for tuberculosis classification.
 
+Live app: [tuberculosis-recognition.pandamia.org](https://tuberculosis-recognition.pandamia.org)
+
 ## Data
 
 [Tuberculosis (TB) Chest X-ray Database](https://www.kaggle.com/datasets/tawsifurrahman/tuberculosis-tb-chest-xray-dataset) from Kaggle.
